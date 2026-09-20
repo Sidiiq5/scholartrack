@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    name: Detect project components
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.detect.outputs.backend }}
+      frontend: ${{ steps.detect.outputs.frontend }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Detect components
+        id: detect
+        shell: bash
+        run: |
+          if [[ -f backend/manage.py || -f backend/requirements.txt || -f backend/pyproject.toml ]]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ -f frontend/package.json ]]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend:
+    name: Backend checks
+    needs: detect
+    if: needs.detect.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m pip install --upgrade pip
+
+          if [[ -f requirements.txt ]]; then
+            python -m pip install -r requirements.txt
+          elif compgen -G 'requirements-*.txt' > /dev/null; then
+            for req in requirements-*.txt; do
+              python -m pip install -r "$req"
+            done
+          elif [[ -f pyproject.toml ]]; then
+            python -m pip install .
+          else
+            echo "No supported dependency manifest found."
+            exit 1
+          fi
+
+      - name: Django system checks
+        if: hashFiles('backend/manage.py') != ''
+        run: python manage.py check
+
+      - name: Check migrations
+        if: hashFiles('backend/manage.py') != ''
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run configured lint checks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -f pyproject.toml ]] && grep -q '^\[tool\.ruff\]' pyproject.toml; then
+            ruff check .
+          elif [[ -f setup.cfg ]] && grep -q '^\[flake8\]' setup.cfg; then
+            flake8 .
+          else
+            echo "No configured backend lint tool found; skipping."
+          fi
+
+      - name: Run Pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -d tests || -f pytest.ini || -f pyproject.toml || -f setup.cfg ]]; then
+            pytest
+          else
+            echo "No Pytest configuration or tests found; skipping."
+          fi
+
+  frontend:
+    name: Frontend checks
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            echo "package-lock.json is required for reproducible CI."
+            exit 1
+          fi
+
+      - name: Run ESLint
+        run: npm run lint --if-present
+
+      - name: Run TypeScript checks
+        run: npm run typecheck --if-present
+
+      - name: Build production bundle
+        run: npm run build --if-present
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
