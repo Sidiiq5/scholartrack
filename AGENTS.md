@@ -4,8 +4,6 @@
 
 ScholarTrack is a scholarship discovery and preparation platform.
 
-The approved product scope is defined by `README.md` and the project's approved technical specification.
-
 AI agents are engineering assistants, not autonomous architects.
 
 ## Source of Truth
