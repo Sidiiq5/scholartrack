@@ -1,572 +1,1413 @@
-# ScholarTrack Technical Specification V1
+# SCHOLARTRACK — TECHNICAL SPECIFICATION V1.0
 
-## 1. Purpose
+**Status:** APPROVED AND LOCKED  
+**Role:** Canonical Technical Source of Truth  
+**Architecture:** Stateless Modular Monolith + PostgreSQL
 
-This document defines the approved V1 technical specification for ScholarTrack. It describes the product scope, system boundaries, architecture, technical responsibilities, data model, and engineering rules for implementation.
+## 1. Product Boundary
 
-This specification is intentionally aligned to the approved V1 product definition in `README.md` and the project governance rules. It is not a general platform roadmap or a feature expansion document.
+ScholarTrack is a scholarship discovery and preparation platform.
 
-## 2. Product Scope Summary
+Core experience:
 
-ScholarTrack is a scholarship discovery and preparation platform for students seeking funded opportunities. V1 focuses on:
+**Discover → Understand → Save → Prepare → Apply externally**
 
-- Scholarship discovery and filtering
-- Structured scholarship information
-- Saving scholarships to a personal shortlist
-- Preparation tracking for saved scholarships
-- Deadline awareness and reminders for saved scholarships
-- Reporting incorrect scholarship data
-- Administrative management of scholarship entries
-- Official-source verification and publication workflow
+ScholarTrack helps students:
 
-V1 does not include direct application processing, AI-generated content, document vaults, payments, community features, or other out-of-scope features defined in the product foundation.
+* Discover scholarships
+* Understand scholarship information
+* Save opportunities
+* Prepare for requirements
+* Track deadlines
+* Receive meaningful deadline notifications
+* Access official application websites
 
-## 3. Core User Journeys
+ScholarTrack does not process scholarship applications.
 
-### 3.1 Discover scholarships
+Application flow:
 
-A student can:
+**ScholarTrack → Official Provider Website → Student Applies**
 
-- Browse scholarships
-- Search by keyword or relevant criteria
-- Filter results by degree level, field of study, country, funding type, deadline, and language requirements
-- View paginated scholarship cards
-- Review scholarship details
+The official scholarship provider remains the source of truth.
 
-### 3.2 Understand a scholarship
+## 2. Architecture
 
-A student can view structured scholarship information, including:
+Architecture style:
 
-- Scholarship name
-- Provider
-- Country
-- Degree level
-- Fields of study
-- Funding type
-- Tuition details
-- Stipend details
-- Other funding information
-- Eligibility
-- Academic requirements
-- Language requirements
-- Relevant requirements
-- Opening date
-- Deadline
-- Remaining time
-- Official application link
-- Official source
-- Last verified date
+**Stateless Modular Monolith + PostgreSQL**
 
-### 3.3 Save scholarships
+```text
+User
+ ↓
+Next.js
+ ↓
+Django REST API
+ ↓
+PostgreSQL
+```
 
-An authenticated student can:
+The frontend never connects directly to PostgreSQL.
 
-- Save a scholarship
-- Remove a saved scholarship
-- View saved scholarships
+The backend owns:
 
-### 3.4 Prepare
+* Authentication
+* Authorization
+* Validation
+* Business logic
+* Database access
+* API behavior
 
-For each saved scholarship, a student can track preparation status:
+### Frontend
 
-- Ready
-- In Progress
-- Need
+* Next.js
+* TypeScript
+* Tailwind CSS
 
-A student may also add a short personal note.
+### Backend
 
-ScholarTrack does not store application documents in V1.
+* Python
+* Django
+* Django REST Framework
+* Django ORM
+* Django Admin
 
-### 3.5 Apply externally
+### Database
 
-ScholarTrack provides official application linking and source metadata, but the student must complete the formal application on the official external website.
+* PostgreSQL
 
-### 3.6 Report issues
+### Testing
 
-Students can report issues such as:
+* Pytest
+* Playwright
 
-- deadline changed
-- broken application link
-- incorrect eligibility information
-- scholarship closed
-- other
+### API documentation
 
-Admin review is required before resolution.
+* OpenAPI
 
-## 4. System Overview
+### Source control
 
-### 4.1 Architectural Style
+* Git
+* GitHub
 
-The approved V1 architecture is:
+### CI/CD
 
-- Next.js
-- TypeScript
-- Tailwind CSS
-- Django
-- Django REST Framework
-- PostgreSQL
-- Django ORM
-- Django Admin
-- Pytest
-- Playwright
-- OpenAPI
-- GitHub
+* GitHub Actions
 
-The architecture is a stateless modular monolith backed by PostgreSQL.
+### Monitoring
 
-### 4.2 Architectural Boundaries
+* Sentry
 
-The frontend must never connect directly to PostgreSQL.
+## 3. Backend Modules
 
-The backend is the system owner for:
+The Django backend uses a modular monolith:
 
-- business logic
-- authentication
-- authorization
-- validation
-- database access
-- API behavior
+```text
+users/
+scholarships/
+saved/
+preparation/
+notifications/
+reports/
+core/
+```
 
-The frontend is responsible for presentation and user interaction only.
+Do not create separate modules for every small domain concept such as:
 
-## 5. Technical Principles
+* deadlines
+* providers
+* funding
+* requirements
+* fields
+* search
 
-The system must obey the following principles:
+Those concepts belong within their appropriate domain modules.
 
-1. Simplicity over optional complexity
-2. Official provider data remains the source of truth
-3. Students should not need to manage high cognitive load while comparing scholarships
-4. The platform must support structured scholarship understanding and preparation
-5. The system must remain maintainable and reviewable
-6. No unnecessary infrastructure, services, or dependencies without explicit approval
+There is no separate admin backend module.
 
-## 6. High-Level Architecture
+Django Admin operates across the application modules.
 
-### 6.1 Frontend
+## 4. Authentication & Authorization
 
-The frontend is a Next.js application using TypeScript and Tailwind CSS.
+Roles:
 
-Responsibilities:
+* STUDENT
+* ADMIN
 
-- page rendering for browsing, detail, auth, account, and admin views
-- client-side state for authenticated user interactions
-- form handling for preparation tracking and reporting
-- presentation of structured scholarship data
-- links to official applications
+V1 uses:
 
-Constraints:
+**Django authentication + secure sessions**
 
-- no direct database access
-- no bypass of backend validation
-- no business logic that duplicates server-side rules
+Public scholarship discovery does not require authentication.
 
-### 6.2 Backend
+Authentication is required for:
 
-The backend is a Django application using Django REST Framework.
+* Saved scholarships
+* Preparation
+* Notifications
+* Reports
+* Personal settings
 
-Responsibilities:
+Students may manage only their own private data.
 
-- API layer
-- authentication and authorization
-- validation and business rules
-- ORM-based access to PostgreSQL
-- admin workflows for scholarship lifecycle management
-- reporting review flows
-- notification logic for saved scholarships
+Students cannot access administrative functions.
 
-### 6.3 Database
+Admins manage:
 
-The database is PostgreSQL using Django ORM.
+* Scholarships
+* Verification
+* Publication
+* Users
+* Reports
+* Appropriate system content
 
-Database access is controlled through approved Django models, migrations, and queries. Database changes must follow the migration process defined in the engineering governance rules.
+The backend determines identity, permissions, and ownership.
 
-## 7. Functional Modules
+### MFA
 
-### 7.1 Scholarship Discovery Module
+MFA is not part of V1.
 
-Purpose:
+Potential V2 security features include:
 
-Provide a searchable, filterable list of published scholarships.
+* Admin MFA
+* Email verification codes
+* Authenticator-app MFA
+* Additional admin security controls
 
-Requirements:
+## 5. Data Flow
 
-- list scholarships in paginated results
-- support search and filtering by approved criteria
-- present scholarship cards with summary metadata
-- handle no-result and empty-state states
-- ensure the published scholarship is the active source of truth
+```text
+User
+ ↓
+Next.js
+ ↓
+Django REST API
+ ↓
+Authentication / Authorization
+ ↓
+Validation
+ ↓
+Business Logic
+ ↓
+PostgreSQL
+ ↓
+Django
+ ↓
+Next.js
+ ↓
+User
+```
+
+External application flow:
+
+```text
+ScholarTrack
+ ↓
+Official Scholarship Website
+ ↓
+Student
+```
 
-Approved discovery filters:
+## 6. Database Design
 
-- degree level
-- field of study
-- country
-- funding type
-- deadline
-- language requirement
+Core entities:
 
-### 7.2 Scholarship Detail Module
+* User
+* Provider
+* Country
+* Scholarship
+* Field
+* Requirement
+* Program
+* SavedScholarship
+* PreparationItem
+* Notification
+* Report
 
-Purpose:
+### User
 
-Present structured, human-readable scholarship details.
+Uses Django authentication.
 
-Requirements:
+Conceptual information:
 
-- show approved core metadata fields
-- display official application link
-- display official source
-- show last verified date
-- distinguish verified and published content from unverified or draft data
-- surface relevant academic programme information when available
+* ID
+* Name
+* Email
+* Password hash
+* Role
+* Status
+* Timestamps
 
-### 7.3 Saved Scholarship Module
+No document storage.
 
-Purpose:
+### Provider
 
-Support personal scholarship shortlisting.
+* ID
+* Name
+* Country
+* Website URL
+* Timestamps
 
-Requirements:
+### Country
 
-- authenticated users can save and remove scholarships
-- saved scholarships are stored with user-specific ownership
-- user can view a saved list
-- saved list remains separate from public publication catalog
+* ID
+* Name
+* ISO 3166-1 alpha-2 code
 
-### 7.4 Preparation Tracking Module
+Examples:
 
-Purpose:
+* Hungary → HU
+* Germany → DE
+* Finland → FI
+* Ireland → IE
+* Canada → CA
+* United States → US
+* Somalia → SO
 
-Allow students to track required preparation activities for saved scholarships.
+The UI displays country names.
 
-Requirements:
+API filtering uses country codes.
 
-- each saved scholarship may carry preparation status entries
-- supported status values are: Ready, In Progress, Need
-- a student may add a short note
-- preparation data is personal and not part of the official scholarship record
-- no document upload or document vault functionality in V1
+### Field
 
-Example fields:
+* ID
+* Name
+* Slug
 
-- GPA requirement
-- IELTS
-- Transcript
-- CV
-- Motivation letter
+Scholarship ↔ Field is many-to-many.
 
-### 7.5 Deadline Tracking Module
+### Scholarship
 
-Purpose:
+* ID
+* Provider
+* Name
+* Description
+* Degree levels
+* Funding type
+* Tuition information
+* Stipend information
+* Other funding information
+* Eligibility
+* Academic requirements
+* Language requirements
+* Opening date
+* Deadline
+* Official application URL
+* Official source URL
+* Optional programme catalogue URL
+* Last verified timestamp
+* Status
+* Created timestamp
+* Updated timestamp
 
-Help students avoid missing scholarship deadlines.
+Scholarships can support multiple degree levels.
 
-Requirements:
+No acceptance-rate field.
 
-- show opening dates
-- show deadlines
-- show remaining time
-- display deadline radar information where relevant
-- send in-app reminders for saved scholarships
-- V1 reminder thresholds: 14 days before deadline and 3 days before deadline
-- no daily spam or repeated reminder loops
+No application-status field.
 
-### 7.6 Reporting Module
+No uploaded-document fields.
 
-Purpose:
+### Requirement
 
-Allow students to flag inaccurate scholarship information.
+* ID
+* Scholarship
+* Type
+* Title
+* Description
+* Required flag
 
-Requirements:
+Requirement types:
 
-- support issue reporting categories such as broken link, changed deadline, incorrect eligibility, closed scholarship, or other
-- store report metadata for administrative review
-- validate against official scholarship source before closure
-- maintain admin review and resolution process
+* ACADEMIC
+* LANGUAGE
+* DOCUMENT
+* ELIGIBILITY
+* FINANCIAL
+* OTHER
 
-### 7.7 Administration Module
+Requirements support student preparation.
 
-Purpose:
+### Program
 
-Provide a manual administrative workflow for scholarship lifecycle management.
+* ID
+* Scholarship
+* Name
+* Description
+* University
+* Country
+* Official URL
 
-Approved workflow:
+Programs are not a separate marketplace.
 
-- Create
-- Enter structured information
-- Validate
-- Verify official source
-- Publish
+If maintaining individual programmes would create unnecessary maintenance or stale information, ScholarTrack may provide the official programme catalogue instead.
 
-Approved lifecycle states:
+### SavedScholarship
 
-- DRAFT
-- VERIFIED
-- PUBLISHED
-- CLOSED
+* User
+* Scholarship
+* Created timestamp
 
-Requirements:
+Database constraint:
 
-- verification and publication are separate steps
-- only verified and published records are generally available to students
-- admin system uses Django Admin in the approved architecture
+```text
+UNIQUE(user_id, scholarship_id)
+```
 
-## 8. Data Model Overview
+### PreparationItem
 
-The V1 data model is centered on scholarships and user interactions relevant to the approved product scope.
+* User
+* Scholarship
+* Requirement, nullable
+* Title
+* Status
+* Note
+* Timestamps
 
-### 8.1 Scholarship Model
+Statuses:
 
-A scholarship record contains:
+* READY
+* IN_PROGRESS
+* NEED
 
-- scholarship name
-- provider
-- country
-- degree level
-- fields of study
-- funding type
-- tuition information
-- stipend information
-- other funding information
-- eligibility
-- academic requirements
-- language requirements
-- relevant requirements
-- opening date
-- deadline
-- days remaining or derived deadline state
-- official application link
-- official source
-- last verified date
-- publication and lifecycle metadata
+Preparation is not application tracking.
 
-### 8.2 Scholarship Lifecycle Fields
+### Notification
 
-A scholarship must support lifecycle status tracking:
+* User
+* Type
+* Title
+* Message
+* Is read
+* Created timestamp
 
-- DRAFT
-- VERIFIED
-- PUBLISHED
-- CLOSED
+Types:
 
-It must also support verification timestamps and publication timestamps as needed.
+* DEADLINE_14_DAYS
+* DEADLINE_3_DAYS
 
-### 8.3 User Model
+### Report
 
-Applications must support a standard Django user model with authenticated student access and administrative access.
+* User
+* Scholarship
+* Reason
+* Description
+* Status
+* Admin note
+* Created timestamp
+* Resolved timestamp
+* Resolved by
 
-### 8.4 Saved Scholarship Model
+Reasons:
 
-A saved scholarship relation should include:
+* DEADLINE_CHANGED
+* BROKEN_LINK
+* INCORRECT_ELIGIBILITY
+* SCHOLARSHIP_CLOSED
+* OTHER
 
-- user
-- scholarship
-- created timestamp
-- optional removal timestamp
+Statuses:
 
-### 8.5 Preparation Tracking Model
+* OPEN
+* RESOLVED
 
-A preparation record should include:
+## 7. Controlled Values
 
-- user
-- scholarship
-- item name or preparation category
-- status value: Ready, In Progress, Need
-- note
-- updated timestamp
+### DegreeLevel
 
-### 8.6 Reporting Model
+* BACHELORS
+* MASTERS
+* PHD
 
-A report record should include:
+### FundingType
 
-- user
-- scholarship
-- report category
-- report details
-- created timestamp
-- reviewed status
-- reviewer metadata
-- resolution state
+* FULLY_FUNDED
+* PARTIALLY_FUNDED
+* TUITION_ONLY
+* STIPEND
 
-## 9. API Design Principles
+### ScholarshipStatus
 
-The API must be built with Django REST Framework and should follow a clean, predictable contract using OpenAPI for documentation.
+* DRAFT
+* VERIFIED
+* PUBLISHED
+* CLOSED
 
-Requirements:
+### PreparationStatus
 
-- use standard REST patterns
-- provide explicit authentication and authorization boundaries
-- separate public scholarship endpoints from authenticated student endpoints and admin endpoints
-- validate all input server-side
-- document the schema using OpenAPI
+* READY
+* IN_PROGRESS
+* NEED
 
-### 9.1 Public API Surface
+### ReportReason
 
-Public or semi-public endpoints may include:
+* DEADLINE_CHANGED
+* BROKEN_LINK
+* INCORRECT_ELIGIBILITY
+* SCHOLARSHIP_CLOSED
+* OTHER
 
-- scholarship listing
-- scholarship detail retrieval
-- search and filtering support
-- list of approved metadata options
+### ReportStatus
 
-### 9.2 Authenticated API Surface
+* OPEN
+* RESOLVED
 
-Authenticated student endpoints may include:
+### NotificationType
 
-- save scholarship
-- remove saved scholarship
-- list saved scholarships
-- update preparation tracking
-- create report
+* DEADLINE_14_DAYS
+* DEADLINE_3_DAYS
 
-### 9.3 Admin API Surface
+### RequirementType
 
-Administrative endpoints may include:
+* ACADEMIC
+* LANGUAGE
+* DOCUMENT
+* ELIGIBILITY
+* FINANCIAL
+* OTHER
 
-- create scholarship draft
-- update scholarship details
-- verify scholarship record
-- publish scholarship
-- close scholarship
-- review reports
+### UserRole
 
-## 10. Security and Authorization
+* STUDENT
+* ADMIN
 
-The backend owns all security-sensitive behavior.
+### UserStatus
 
-Rules:
+* ACTIVE
+* SUSPENDED
 
-- never trust frontend-only validation
-- enforce authentication and authorization on every user-specific action
-- users must not access another user's saved data or preparation information
-- all sensitive operations must be server-side validated
-- do not commit secrets, credentials, or environment files
+Naturally variable information such as scholarship names, providers, descriptions, financial information, programme names, universities, notes, and admin notes must not be converted into unnecessary enums.
 
-## 11. Testing Strategy
+## 8. Scholarship Lifecycle
 
-### 11.1 Backend Testing
+```text
+DRAFT
+ ↓
+VERIFIED
+ ↓
+PUBLISHED
+ ↓
+CLOSED
+```
 
-Use Pytest for backend logic and API testing.
+**DRAFT:** Internal creation/editing. Not public.
 
-Required testing includes:
+**VERIFIED:** Checked against official source. Not necessarily public.
 
-- business validation rules
-- authorization checks
-- model behavior
-- report handling
-- deadline logic
-- preparation tracking changes
-- admin workflow behavior
+**PUBLISHED:** Publicly available.
 
-### 11.2 End-to-End Testing
+**CLOSED:** Opportunity is no longer open.
 
-Use Playwright for key user journeys such as:
+Verification and publication are separate.
 
-- scholarship search and filtering
-- saved scholarship flow
-- preparation tracking flow
-- report submission flow
+Closed scholarships may remain accessible for historical/reference purposes.
 
-### 11.3 Regression Testing
+## 9. Deadline Rules
 
-Bugs must include regression tests where relevant.
+The deadline is stored as an actual date.
 
-## 12. Database and Migration Rules
+Remaining days are calculated dynamically.
 
-Database schema changes must use Django migrations.
+```text
+days_remaining = deadline - current server date
+```
 
-Before completing database work, review:
+For closed scholarships:
 
-- foreign keys
-- constraints
-- unique relationships
-- indexes
-- query behavior
+```text
+days_remaining = null
+```
 
-Manual schema edits outside the approved migration process are not permitted.
+A scholarship must not be presented as active after its deadline.
 
-## 13. Git and Change Control
+A scheduled mechanism persists the CLOSED state.
 
-The repository must remain reviewable and focused.
+Manual early closure is allowed when the official source confirms that the opportunity closed early.
 
-Requirements:
+## 10. API Conventions
 
-- no unrelated file modifications
-- no generated secret or credential files
-- changes must remain targeted and reviewable
-- `main` must remain deployable
-- significant changes require review before merge
+Base path:
 
-## 14. Non-Goals and Explicit Exclusions
+```text
+/api/
+```
 
-The following remain explicitly out of V1 scope:
+No `/v1/` prefix.
 
-- AI scholarship matching
-- AI-generated scholarship information
-- automatic scholarship scraping
-- automatic publishing
-- AI CV builder
-- AI essay generator
-- application-status tracking
-- acceptance-rate tracking
-- applying directly inside ScholarTrack
-- student document uploads
-- document vault
-- payments
-- social/community features
-- chat
-- mobile application
-- organization accounts
-- complex analytics
-- multi-language support
-- dedicated search infrastructure
-- microservices
-- Kubernetes
-- additional databases
-- document storage systems
-- other infrastructure introduced without a measured need
+REST + JSON.
 
-These exclusions are intentional and must be preserved unless explicitly approved.
+JSON naming:
 
-## 15. Operational Constraints
+```text
+snake_case
+```
 
-The V1 system must remain simple and maintainable.
+Dates/timestamps:
 
-- use existing approved stack only
-- avoid speculative infrastructure
-- keep data flow clear and auditable
-- preserve official-source verification standards
-- keep the platform focused on scholarship discovery and preparation
+```text
+ISO 8601
+```
 
-## 16. Acceptance Criteria for V1
+IDs:
 
-A V1 implementation is considered acceptable only when it satisfies the following:
+```text
+Integer IDs
+```
 
-- scholarships are discoverable and filterable
-- scholarship detail pages provide structured, official-source-based information
-- authenticated students can save scholarships and track preparation
-- deadline reminders are meaningful and limited to V1 requirements
-- reporting supports admin review against official sources
-- admin workflows support manual moderation and publication
-- backend owns the critical logic and security decisions
-- system remains within the approved architecture and scope
+Methods:
 
-## 17. Definition of Done
+* GET
+* POST
+* PATCH
+* DELETE
 
-A change is complete only when it:
+Authentication:
 
-- meets the approved specification
-- follows the approved architecture
-- remains within V1 scope
-- handles relevant edge cases
-- includes appropriate automated tests
-- passes existing tests
-- preserves authorization and data integrity
-- includes required documentation updates when needed
-- has been reviewed appropriately
+* Django session authentication
 
-## 18. Source of Truth
+Authorization:
 
-This document defines the approved technical specification for V1. When a conflict exists between implementation choices and the approved product or technical documentation, the approved documentation governs.
+* Backend enforced
 
-When uncertainty exists, the appropriate action is to stop, explain the issue, propose a compliant option, and request approval before proceeding.
+Documentation:
+
+* OpenAPI
+
+The API exposes business capabilities rather than blindly exposing database tables.
+
+### Error format
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message.",
+    "details": {}
+  }
+}
+```
+
+Standard HTTP statuses:
+
+* 200
+* 201
+* 204
+* 400
+* 401
+* 403
+* 404
+* 409
+* 429
+* 500
+
+Pagination:
+
+* Default: 20
+* Maximum: server controlled
+
+## 11. Scholarship API
+
+```http
+GET /api/scholarships/
+GET /api/scholarships/{id}/
+```
+
+Search:
+
+```text
+?q=
+```
+
+Filters:
+
+* degree_level
+* field
+* country
+* funding_type
+* deadline_after
+* deadline_before
+* language_requirement
+
+Sorting supports:
+
+* deadline soonest
+* deadline latest
+* recently added
+* recently verified
+
+Country filtering uses ISO alpha-2 codes.
+
+List responses are compact.
+
+Detail responses contain complete scholarship information.
+
+Authenticated users may receive:
+
+```text
+saved: true/false
+```
+
+`days_remaining` is calculated dynamically.
+
+## 12. Saved API
+
+```http
+GET /api/saved/
+POST /api/scholarships/{id}/save/
+DELETE /api/scholarships/{id}/save/
+```
+
+Authentication required.
+
+Save has no body.
+
+Unsave returns 204.
+
+Duplicate saves are prevented by the database constraint.
+
+## 13. Preparation API
+
+```http
+GET /api/scholarships/{id}/preparation/
+POST /api/scholarships/{id}/preparation/
+PATCH /api/preparation/{id}/
+DELETE /api/preparation/{id}/
+```
+
+Authentication and ownership validation required.
+
+Statuses:
+
+* READY
+* IN_PROGRESS
+* NEED
+
+No application-status workflow.
+
+No document storage.
+
+## 14. Notification API
+
+```http
+GET /api/notifications/
+PATCH /api/notifications/{id}/read/
+```
+
+In-app only.
+
+Saved scholarship reminders:
+
+* 14 days before deadline
+* 3 days before deadline
+
+No daily reminders.
+
+No notification spam.
+
+Duplicate scheduled notifications must be prevented.
+
+## 15. Reports API
+
+```http
+POST /api/scholarships/{id}/reports/
+```
+
+Student authentication required.
+
+Students submit reports.
+
+Admins review and resolve reports through Django Admin.
+
+## 16. Authentication API
+
+```http
+POST /api/auth/register/
+POST /api/auth/login/
+POST /api/auth/logout/
+GET /api/auth/me/
+```
+
+Registration defaults to STUDENT.
+
+Self-registration as ADMIN is prohibited.
+
+## 17. Settings API
+
+```http
+GET /api/settings/
+PATCH /api/settings/
+```
+
+Only the authenticated user's settings are accessible.
+
+V1 settings remain minimal.
+
+## 18. Public Supporting APIs
+
+```http
+GET /api/countries/
+GET /api/fields/
+```
+
+Read-only public reference data.
+
+Degree levels and funding types remain controlled backend definitions.
+
+## 19. Admin Boundary
+
+V1 uses customized Django Admin as the primary administrative interface.
+
+No separate Next.js admin dashboard.
+
+Admin manages:
+
+* Scholarships
+* Providers
+* Countries
+* Fields
+* Requirements
+* Programs
+* Users
+* Reports
+* Verification
+* Publication
+
+A dedicated Next.js admin dashboard is deferred until real usage demonstrates a need.
+
+## 20. User Flows
+
+### Public
+
+```text
+Visit
+ ↓
+Browse/Search
+ ↓
+Filter
+ ↓
+Open scholarship
+ ↓
+Understand requirements/funding/deadline
+ ↓
+View programmes if available
+ ↓
+Official application link
+```
+
+### Student
+
+```text
+Browse
+ ↓
+Open
+ ↓
+Save
+ ↓
+Prepare
+ ↓
+Monitor deadline
+ ↓
+Receive notification
+ ↓
+Official application website
+```
+
+### Admin
+
+```text
+Django Admin
+ ↓
+Create scholarship
+ ↓
+Enter structured information
+ ↓
+Validate
+ ↓
+Verify official source
+ ↓
+Publish
+```
+
+### Reporting
+
+```text
+Student
+ ↓
+Report
+ ↓
+Admin review
+ ↓
+Verify against official source
+ ↓
+Correct
+ ↓
+Resolve
+```
+
+## 21. Search & Filtering
+
+V1 uses PostgreSQL.
+
+No dedicated search engine.
+
+Search covers:
+
+* Scholarship name
+* Provider
+* Description
+* Fields
+* Relevant keywords
+
+Filters:
+
+* Degree level
+* Field
+* Country
+* Funding type
+* Deadline
+* Language requirement
+
+Pagination is required.
+
+Default discovery prioritizes active/upcoming opportunities.
+
+Closed opportunities remain accessible and clearly marked.
+
+Scaling principle:
+
+**Measure → Identify bottleneck → Optimize → Measure again → Scale when necessary.**
+
+## 22. Preparation
+
+Preparation is a simple checklist tied to scholarship requirements.
+
+Students can:
+
+* See requirements
+* Create preparation items
+* Track readiness
+* Add short notes
+* Update statuses
+* Delete items
+
+Statuses:
+
+* READY
+* IN_PROGRESS
+* NEED
+
+No document uploads.
+
+No application-status workflow.
+
+## 23. Trust Model
+
+> ScholarTrack organizes and simplifies scholarship information; the official scholarship provider remains the source of truth.
+
+Every published scholarship should provide:
+
+* Official source
+* Official application link
+* Last verified date
+
+ScholarTrack must not present unverified information as authoritative.
+
+## 24. Scholarship Creation
+
+V1 scholarship creation is manual and structured.
+
+Workflow:
+
+**Create → Enter information → Validate → Verify official source → Publish**
+
+AI must not automatically publish scholarship information.
+
+Future possibility:
+
+```text
+Official page
+ ↓
+AI extraction
+ ↓
+Structured data
+ ↓
+Admin review
+ ↓
+Publish
+```
+
+This is future functionality, not V1.
+
+## 25. Security
+
+V1 includes:
+
+* Django authentication
+* Secure sessions/cookies
+* Backend authorization
+* Ownership checks
+* CSRF protection
+* Restrictive CORS
+* Backend validation
+* Database constraints
+* Rate limiting for sensitive endpoints
+* HTTPS in production
+* Environment-managed secrets
+* DEBUG=False in production
+* Secure password hashing
+* Database access controls
+* Security-conscious logging
+* Production security headers
+
+Frontend validation is for UX only.
+
+Backend validation is authoritative.
+
+## 26. Performance & Reliability
+
+V1 includes:
+
+* PostgreSQL indexing
+* Query optimization
+* Pagination
+* Efficient ORM usage
+* Transactions
+* Automated backups
+* Restore testing
+* Health endpoint
+* Structured logging
+* Basic monitoring
+* Sentry
+* Controlled error handling
+* Appropriate retry behavior
+
+No V1:
+
+* Redis
+* Dedicated search engine
+* Kubernetes
+* Microservices
+* Multiple databases
+* Elaborate observability infrastructure
+
+unless measured need later justifies them.
+
+## 27. Testing
+
+Backend:
+
+**Pytest**
+
+End-to-end:
+
+**Playwright**
+
+Tests cover appropriate:
+
+* Business logic
+* API behavior
+* Authentication
+* Authorization
+* Ownership
+* Security-sensitive behavior
+* Important user flows
+* Error states
+* Regression cases
+
+Every feature and bug fix must have appropriate automated tests.
+
+Never claim tests were executed unless they actually ran.
+
+## 28. Environments
+
+Three environments:
+
+* Development
+* Staging
+* Production
+
+Development uses local infrastructure and no production data.
+
+Staging uses separate infrastructure and database.
+
+Staging is used for:
+
+* Integration testing
+* E2E testing
+* Migration testing
+* Deployment testing
+* Human verification
+
+Production is isolated.
+
+## 29. Deployment
+
+Initial deployment stack:
+
+* Frontend: Vercel
+* Backend: Render
+* Database: Render PostgreSQL
+* Source: GitHub
+* CI: GitHub Actions
+* Monitoring: Sentry
+
+Production:
+
+```text
+User
+ ↓
+Vercel / Next.js
+ ↓ HTTPS
+Render / Django + DRF
+ ↓
+Render PostgreSQL
+```
+
+Target domains:
+
+* `www.scholartrack.com`
+* `api.scholartrack.com`
+* `api.scholartrack.com/admin/`
+
+HTTPS is required.
+
+Application code should remain reasonably provider-independent.
+
+## 30. CI/CD
+
+Flow:
+
+```text
+Pull Request
+ ↓
+CI
+ ↓
+AI Review
+ ↓
+Human Review
+ ↓
+Merge
+ ↓
+Staging Verification
+ ↓
+Production Approval
+ ↓
+Production Deployment
+```
+
+GitHub Actions should perform relevant:
+
+* Backend tests
+* Frontend checks
+* Linting
+* Type checking
+* Build checks
+* E2E tests
+
+Production deployment is approval-controlled.
+
+## 31. Database Migrations
+
+All schema changes use Django migrations.
+
+```text
+Code change
+ ↓
+Migration
+ ↓
+Review
+ ↓
+Tests
+ ↓
+Staging
+ ↓
+Verification
+ ↓
+Production
+```
+
+Production database schemas must not be manually modified.
+
+## 32. Environment & Secrets
+
+Secrets never enter GitHub.
+
+`.env` is ignored.
+
+`.env.example` is committed.
+
+Potential variables include:
+
+* DATABASE_URL
+* SECRET_KEY
+* DJANGO_SETTINGS_MODULE
+* ALLOWED_HOSTS
+* CORS_ALLOWED_ORIGINS
+* SENTRY_DSN
+* NEXT_PUBLIC_API_URL
+
+## 33. Backups
+
+Production PostgreSQL uses automated backups.
+
+Periodic restore testing is required.
+
+A backup is not considered proven until restoration has been tested.
+
+## 34. Background Work
+
+V1 does not introduce Redis/Celery merely for deadline notifications.
+
+A lightweight scheduled mechanism handles recurring deadline notification work.
+
+Conceptually:
+
+```text
+Scheduled job
+ ↓
+Find relevant saved scholarships
+ ↓
+Check deadline
+ ↓
+Check existing notification
+ ↓
+Create notification
+```
+
+The implementation must remain isolated so a queue/worker architecture can be introduced later if measured need exists.
+
+## 35. Logging & Monitoring
+
+Sentry provides dedicated application error monitoring.
+
+Logs must not expose:
+
+* Passwords
+* Secrets
+* API keys
+* Session secrets
+* Sensitive personal information
+
+Health endpoints must not expose sensitive internals.
+
+## 36. Git/GitHub Workflow
+
+GitHub is the source-control platform.
+
+`main` remains deployable.
+
+Low-risk documentation or non-functional changes may be committed directly when appropriate.
+
+Significant changes require:
+
+**Focused branch → Pull Request → CI → AI Review → Human Review → Merge**
+
+Significant changes include:
+
+* Functional changes
+* Security changes
+* Database changes
+* Architectural changes
+
+Commits should be focused and descriptive.
+
+## 37. AI Engineering Rules
+
+AI agents are engineering assistants, not autonomous architects.
+
+Each agent receives:
+
+* Exact task
+* Relevant specification
+* Architecture
+* Allowed technologies
+* Allowed files
+* Forbidden files where appropriate
+* Acceptance criteria
+* Required tests
+
+Agents must inspect existing code before editing.
+
+Agents must make small reviewable changes.
+
+Agents cannot:
+
+* Redesign architecture
+* Expand product scope
+* Remove approved requirements
+* Introduce unapproved infrastructure
+* Approve their own work
+* Merge their own work
+
+If an agent encounters an architectural issue:
+
+**Stop → Explain → Propose → Request approval**
+
+## 38. AI Agent Roles
+
+Six repository-level roles:
+
+1. Architect / Planner
+2. Backend Engineer
+3. Frontend Engineer
+4. Database Engineer
+5. QA / Testing
+6. Senior Code Reviewer
+
+The human project owner retains final authority.
+
+## 39. AI Code Review Agent
+
+The Senior Code Review Agent reviews significant implementations before human review.
+
+Checks:
+
+* Bugs
+* Security vulnerabilities
+* Authorization
+* Ownership
+* Architecture
+* Database correctness
+* API contract violations
+* Edge cases
+* Error handling
+* Performance
+* Missing tests
+* Regression risks
+* Unnecessary complexity
+* Scope creep
+* Specification compliance
+
+AI review can reject an implementation but cannot merge it.
+
+Human review is final.
+
+## 40. Agent Reporting
+
+Every agent must report:
+
+* What changed
+* Files changed
+* Tests added
+* Tests actually executed
+* Test results
+* Migrations
+* Dependencies added
+* Known limitations
+* Issues requiring human attention
+
+Agents must distinguish:
+
+**Implemented**
+
+from:
+
+**Implemented and verified**
+
+## 41. Definition of Done
+
+A feature is Done only when it:
+
+* Meets the approved specification
+* Follows the architecture
+* Handles relevant edge cases
+* Has appropriate tests
+* Passes existing tests
+* Has no unauthorized scope changes
+* Preserves authentication
+* Preserves authorization
+* Preserves ownership controls
+* Validates inputs
+* Protects secrets
+* Has security-sensitive tests
+* Has appropriate E2E tests where needed
+* Passes CI
+* Has completed AI review
+* Has completed human review
+* Has critical findings resolved
+* Has required documentation updates
+* Has migrations reviewed
+* Has staging verification where appropriate
+* Is ready for controlled deployment
+
+## 42. V1 Explicit Exclusions
+
+V1 does not include:
+
+* AI scholarship matching
+* AI-generated scholarship information
+* Automatic scholarship scraping
+* Automatic AI publishing
+* AI CV builder
+* AI essay generator
+* Application-status tracking
+* Acceptance-rate tracking
+* Applying directly inside ScholarTrack
+* Student document uploads
+* Document Vault
+* Payments
+* Social/community
+* Chat
+* Mobile application
+* Organization accounts
+* Complex analytics
+* Multi-language support
+* Dedicated search infrastructure
+* Microservices
+* Kubernetes
+* Additional databases
+* Unnecessary infrastructure
+
+These exclusions are deliberate scope boundaries.
+
+## 43. V2 / Future Candidates
+
+Potential future capabilities include:
+
+* Admin MFA
+* Email verification
+* Authenticator-app MFA
+* AI-assisted scholarship extraction
+* AI-assisted verification
+* Dedicated Next.js admin dashboard
+* Redis
+* Background workers/queues
+* Dedicated search engine
+* Additional notification channels
+* Mobile application
+* AI scholarship matching
+
+These are not V1 commitments.
+
+## 44. Scaling Philosophy
+
+**Measure → Identify bottleneck → Optimize → Measure again → Scale when necessary.**
+
+Infrastructure is introduced because of measured need.
+
+Do not introduce infrastructure merely because it is technically fashionable.
+
+## 45. Source-of-Truth Hierarchy
+
+When resolving conflicts:
+
+1. Explicitly approved product decisions
+2. `docs/TECHNICAL_SPECIFICATION_V1.md`
+3. `AGENTS.md`
+4. Existing implementation
+5. AI assumptions
+
+Existing code does not override an approved specification.
+
+AI assumptions never override approved decisions.
+
+## 46. Final Technical Principle
+
+> **Simple to launch, stateless to scale, modular to evolve, secure by default, measurable before optimization, and disciplined in scope.**
+
+## 47. Approval Status
+
+**TECHNICAL SPECIFICATION V1.0 — APPROVED AND LOCKED**
+
+This document is now the canonical technical Source of Truth for ScholarTrack V1.
+
+Any future change requires explicit review and approval under the project's engineering decision process.

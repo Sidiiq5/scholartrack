@@ -15,9 +15,13 @@ Before making changes, inspect:
 3. Relevant project documentation
 4. Existing code and configuration
 
-The approved product scope and technical decisions are defined by the project's approved documentation. Until those documents are finalized, `README.md` and explicitly approved decisions in the conversation are the current source of truth.
+The source-of-truth documents are:
 
-Approved specifications take precedence over assumptions.
+* `README.md` → high-level product identity and V1 scope
+* `docs/TECHNICAL_SPECIFICATION_V1.md` → canonical technical Source of Truth
+* `AGENTS.md` → AI engineering rules
+
+Approved specifications take precedence over assumptions and existing implementation.
 
 ## Scope Control
 
