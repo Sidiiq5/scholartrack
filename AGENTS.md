@@ -1,4 +1,4 @@
-# ScholarTrack — AI Engineering Rules
+# ScholarTrack AI Engineering Rules
 
 ## Project Role
 
@@ -174,6 +174,8 @@ An AI agent must not:
 * Silently change architecture
 * Silently expand scope
 * Approve or merge its own work
+
+Detailed agent definitions for the implementation workflow live in `.github/agents/`. Use those definitions as the authoritative guide for responsibilities, boundaries, and handoffs.
 
 ## Human Approval
 
