@@ -49,6 +49,12 @@ jobs:
     if: needs.detect.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: sqlite:///ci.sqlite3
+      SECRET_KEY: ci-only-secret
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+
     defaults:
       run:
         working-directory: backend
@@ -68,26 +74,12 @@ jobs:
           set -euo pipefail
 
           python -m pip install --upgrade pip
-
-          if [[ -f requirements.txt ]]; then
-            python -m pip install -r requirements.txt
-          elif compgen -G 'requirements-*.txt' > /dev/null; then
-            for req in requirements-*.txt; do
-              python -m pip install -r "$req"
-            done
-          elif [[ -f pyproject.toml ]]; then
-            python -m pip install .
-          else
-            echo "No supported dependency manifest found."
-            exit 1
-          fi
+          python -m pip install -r requirements.txt
 
       - name: Django system checks
-        if: hashFiles('backend/manage.py') != ''
         run: python manage.py check
 
       - name: Check migrations
-        if: hashFiles('backend/manage.py') != ''
         run: python manage.py makemigrations --check --dry-run
 
       - name: Run configured lint checks
@@ -104,15 +96,7 @@ jobs:
           fi
 
       - name: Run Pytest
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ -d tests || -f pytest.ini || -f pyproject.toml || -f setup.cfg ]]; then
-            pytest
-          else
-            echo "No Pytest configuration or tests found; skipping."
-          fi
+        run: pytest
 
   frontend:
     name: Frontend checks
