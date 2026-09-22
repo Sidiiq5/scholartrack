@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from .models import (
@@ -84,7 +85,7 @@ def test_scholarship_relationships(provider, scholarship):
 
 def test_invalid_controlled_value_fails_model_validation(scholarship):
     scholarship.status = "INVALID"
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         scholarship.full_clean()
 
 
