@@ -124,7 +124,7 @@ Those concepts belong within their appropriate domain modules.
 
 There is no separate admin backend module.
 
-Django Admin operates across the application modules.
+Django Admin remains available for internal administrative operations, but the approved V1 product-facing admin experience is the Next.js Admin Dashboard described in the UI Source of Truth.
 
 ## 4. Authentication & Authorization
 
@@ -754,24 +754,24 @@ Degree levels and funding types remain controlled backend definitions.
 
 ## 19. Admin Boundary
 
-V1 uses customized Django Admin as the primary administrative interface.
+V1 includes a product-facing **Next.js Admin Dashboard**. Its approved visual and interaction design is part of the V1 frontend and is implemented with Next.js, TypeScript, and Tailwind CSS.
 
-No separate Next.js admin dashboard.
+Django Admin remains available as an internal administrative interface and fallback operational tool. It does not replace the product-facing Next.js Admin Dashboard.
 
-Admin manages:
+Admin dashboard capabilities include:
 
+* Dashboard
 * Scholarships
-* Providers
-* Countries
-* Fields
-* Requirements
-* Programs
-* Users
-* Reports
 * Verification
-* Publication
+* Reports
+* Users
+* Settings
+* Scholarship create/edit/preview
+* Verify, publish, and close actions
 
-A dedicated Next.js admin dashboard is deferred until real usage demonstrates a need.
+The approved admin workflow is:
+
+**Create → Verify → Publish → Maintain → Close**
 
 ## 20. User Flows
 
@@ -1386,7 +1386,50 @@ Infrastructure is introduced because of measured need.
 
 Do not introduce infrastructure merely because it is technically fashionable.
 
-## 45. Source-of-Truth Hierarchy
+## 45. Frontend UI Source of Truth
+
+The repository `Sidiiq5/Sidiiq5-scholartrack-ui-reference` is the approved V1 visual and interaction reference.
+
+Final reference screens include:
+
+* Unified Student/Admin Login
+* Student Shell
+* Student Discovery
+* Student scholarship detail
+* My Trackers
+* Preparation
+* Notifications
+* Settings
+* Admin Dashboard
+* Admin Scholarships
+* Admin Verification
+* Admin Reports
+* Admin Users
+* Admin Settings
+
+The reference repository contains HTML/CSS/JavaScript prototypes only. Those files are **reference material, not production implementation**. Production must rebuild the approved experience in Next.js, TypeScript, and Tailwind CSS and connect it to the real Django API.
+
+No new standalone HTML prototypes are required or should be created as part of V1 frontend implementation.
+
+The production frontend must preserve the approved visual language, interaction model, responsive behavior, and information hierarchy while correcting prototype-only behavior and V1 conflicts.
+
+Prototype-only behavior that must not enter production includes mock authentication, localStorage persistence, fake scholarship data, demo quick-fill controls, social login, and simulated server behavior.
+
+### Reference precedence
+
+When reference files overlap, use this precedence:
+
+1. `scholartrack_discovery_app.html` — primary student discovery/application reference
+2. `gemini login ad&stu.html` — authentication reference
+3. `student shell.html` — authenticated student shell reference
+4. `scholartrack_admin_dashboard_mvp.html` — admin reference
+5. `home DIscovery.html` and `scholartrack_prototype (1).html` — historical/secondary reference only; they do not define additional production screens
+
+### Production cleanup
+
+The earlier rejected production frontend is retired. It must be replaced rather than extended. Retired screens must not remain as alternate production routes or duplicate experiences.
+
+## 46. Source-of-Truth Hierarchy
 
 When resolving conflicts:
 
@@ -1400,11 +1443,11 @@ Existing code does not override an approved specification.
 
 AI assumptions never override approved decisions.
 
-## 46. Final Technical Principle
+## 47. Final Technical Principle
 
 > **Simple to launch, stateless to scale, modular to evolve, secure by default, measurable before optimization, and disciplined in scope.**
 
-## 47. Approval Status
+## 48. Approval Status
 
 **TECHNICAL SPECIFICATION V1.0 — APPROVED AND LOCKED**
 
