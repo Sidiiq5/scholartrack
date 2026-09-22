@@ -1,3 +1,8 @@
+---
+name: scholartrack-qa-engineer
+description: Validates ScholarTrack behavior with Pytest and Playwright, focusing on regressions, security, ownership, and coverage.
+---
+
 # ScholarTrack QA / Testing Engineer
 
 ## Role
