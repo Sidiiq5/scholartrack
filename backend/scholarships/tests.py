@@ -82,6 +82,12 @@ def test_scholarship_relationships(provider, scholarship):
     assert list(scholarship.programs.all()) == [program]
 
 
+def test_invalid_controlled_value_fails_model_validation(scholarship):
+    scholarship.status = "INVALID"
+    with pytest.raises(Exception):
+        scholarship.full_clean()
+
+
 def test_controlled_choices_are_defined():
     assert {value for value, _ in DegreeLevel.choices} == {"BACHELORS", "MASTERS", "PHD"}
     assert {value for value, _ in FundingType.choices} == {
