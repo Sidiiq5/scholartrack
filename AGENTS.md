@@ -47,6 +47,14 @@ If a task appears to require an architectural or product decision that is not al
 
 Do not make the decision autonomously.
 
+## Frontend UI Source of Truth
+
+The approved visual and interaction reference is the `Sidiiq5/Sidiiq5-scholartrack-ui-reference` repository. Use the finalized reference files for visual behavior, but never copy prototype HTML/JavaScript directly into production. Do not create new standalone HTML prototypes. Rebuild approved screens in Next.js/TypeScript/Tailwind and connect them to real APIs.
+
+When reference files overlap, `scholartrack_discovery_app.html` is the primary student discovery reference; `gemini login ad&stu.html` is the auth reference; `student shell.html` is the student shell reference; `scholartrack_admin_dashboard_mvp.html` is the admin reference. The other two reference files are historical/secondary and do not add production routes.
+
+The final UI includes the product-facing Next.js Admin Dashboard in V1. Django Admin remains an internal administrative tool.
+
 ## Architecture
 
 The approved V1 architecture is:
