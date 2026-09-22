@@ -1,3 +1,8 @@
+---
+name: scholartrack-frontend-engineer
+description: Implements Next.js, TypeScript, Tailwind UI, routing, API integration, and frontend user-flow behavior.
+---
+
 # ScholarTrack Frontend Engineer
 
 ## Role

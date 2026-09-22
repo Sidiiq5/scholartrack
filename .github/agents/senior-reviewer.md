@@ -1,3 +1,8 @@
+---
+name: scholartrack-senior-reviewer
+description: Independently reviews implementations for specification, architecture, security, correctness, tests, and scope compliance before human review.
+---
+
 # ScholarTrack Senior Reviewer
 
 ## Role

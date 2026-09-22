@@ -1,3 +1,8 @@
+---
+name: scholartrack-architect
+description: Plans approved ScholarTrack work, defines bounded tasks, and escalates unapproved architecture or product decisions.
+---
+
 # ScholarTrack Architect / Planner
 
 ## Role

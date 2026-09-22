@@ -1,3 +1,8 @@
+---
+name: scholartrack-backend-engineer
+description: Implements Django and DRF behavior, business logic, authorization, APIs, and backend tests within the locked V1 architecture.
+---
+
 # ScholarTrack Backend Engineer
 
 ## Role
