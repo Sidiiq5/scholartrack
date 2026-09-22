@@ -51,12 +51,6 @@ class Provider(models.Model):
 
     class Meta:
         ordering = ["name"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["name", "country"],
-                name="unique_provider_name_country",
-            )
-        ]
 
     def __str__(self):
         return self.name
@@ -109,7 +103,6 @@ class Scholarship(models.Model):
             models.Index(fields=["status"]),
             models.Index(fields=["deadline"]),
             models.Index(fields=["opening_date"]),
-            models.Index(fields=["provider"]),
         ]
 
     def __str__(self):
