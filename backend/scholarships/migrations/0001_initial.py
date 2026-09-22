@@ -39,10 +39,7 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("country", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="providers", to="scholarships.country")),
             ],
-            options={
-                "ordering": ["name"],
-                "constraints": [models.UniqueConstraint(fields=("name", "country"), name="unique_provider_name_country")],
-            },
+            options={"ordering": ["name"]},
         ),
         migrations.CreateModel(
             name="Scholarship",
@@ -75,7 +72,6 @@ class Migration(migrations.Migration):
                     models.Index(fields=["status"], name="scholarships_status_4d9b3a_idx"),
                     models.Index(fields=["deadline"], name="scholarships_deadline_3d8f8a_idx"),
                     models.Index(fields=["opening_date"], name="scholarships_opening_0d5b93_idx"),
-                    models.Index(fields=["provider"], name="scholarships_provider_7c9b3e_idx"),
                 ],
             },
         ),
