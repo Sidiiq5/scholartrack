@@ -1,3 +1,8 @@
+---
+name: scholartrack-database-engineer
+description: Implements and reviews Django models, PostgreSQL schema constraints, indexes, migrations, and data integrity.
+---
+
 # ScholarTrack Database Engineer
 
 ## Role
