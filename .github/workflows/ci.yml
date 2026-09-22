@@ -49,8 +49,23 @@ jobs:
     if: needs.detect.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: scholartrack_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d scholartrack_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      DATABASE_URL: sqlite:///ci.sqlite3
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/scholartrack_ci
       SECRET_KEY: ci-only-secret
       DEBUG: "False"
       ALLOWED_HOSTS: localhost,127.0.0.1
