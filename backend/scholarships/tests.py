@@ -105,3 +105,66 @@ def test_controlled_choices_are_defined():
         "FINANCIAL",
         "OTHER",
     }
+
+
+@pytest.mark.django_db
+def test_public_scholarship_list_only_returns_published_and_closed(client, provider):
+    published = Scholarship.objects.create(
+        provider=provider,
+        name="Published Scholarship",
+        description="Visible",
+        degree_levels=[DegreeLevel.MASTERS],
+        funding_type=FundingType.FULLY_FUNDED,
+        eligibility="Eligible",
+        deadline="2027-01-15",
+        official_application_url="https://example.com/apply",
+        official_source_url="https://example.com/source",
+        status=ScholarshipStatus.PUBLISHED,
+    )
+    Scholarship.objects.create(
+        provider=provider,
+        name="Draft Scholarship",
+        description="Hidden",
+        degree_levels=[DegreeLevel.MASTERS],
+        funding_type=FundingType.FULLY_FUNDED,
+        eligibility="Eligible",
+        deadline="2027-02-15",
+        official_application_url="https://example.com/apply-2",
+        official_source_url="https://example.com/source-2",
+        status=ScholarshipStatus.DRAFT,
+    )
+
+    response = client.get("/api/scholarships/")
+    assert response.status_code == 200
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["id"] == published.id
+
+
+@pytest.mark.django_db
+def test_public_scholarship_search_and_filter(client, provider):
+    scholarship = Scholarship.objects.create(
+        provider=provider,
+        name="AI Masters Fellowship",
+        description="Computer science opportunity",
+        degree_levels=[DegreeLevel.MASTERS],
+        funding_type=FundingType.FULLY_FUNDED,
+        eligibility="Eligible",
+        deadline="2027-01-15",
+        official_application_url="https://example.com/apply",
+        official_source_url="https://example.com/source",
+        status=ScholarshipStatus.PUBLISHED,
+    )
+
+    response = client.get("/api/scholarships/?q=AI&degree_level=MASTERS&funding_type=FULLY_FUNDED")
+    assert response.status_code == 200
+    assert response.data["results"][0]["id"] == scholarship.id
+
+
+@pytest.mark.django_db
+def test_scholarship_detail_is_public(client, scholarship):
+    scholarship.status = ScholarshipStatus.PUBLISHED
+    scholarship.save(update_fields=["status"])
+
+    response = client.get(f"/api/scholarships/{scholarship.id}/")
+    assert response.status_code == 200
+    assert response.data["name"] == scholarship.name
